@@ -59,15 +59,44 @@ function renderTable(data, table) {
   table.innerHTML = "";
   if (data.length === 0) return;
 
+  const cols = Object.keys(data[0]);
+
+  // colgroup for width control
+  const colgroup = document.createElement("colgroup");
+  const colCheck = document.createElement("col");
+  colCheck.style.width = "36px";
+  colgroup.appendChild(colCheck);
+  cols.forEach(() => {
+    const c = document.createElement("col");
+    c.style.width = "auto";
+    colgroup.appendChild(c);
+  });
+  table.appendChild(colgroup);
+
+  // thead with resizer handles
+  const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
-  headerRow.innerHTML = "<th></th>"; // checkbox column
-  Object.keys(data[0]).forEach((col) => {
+  const firstTh = document.createElement("th");
+  headerRow.appendChild(firstTh);
+  cols.forEach((col, index) => {
     const th = document.createElement("th");
     th.textContent = col;
+    th.dataset.colIndex = String(index + 1);
+    const handle = document.createElement("div");
+    handle.className = "col-resizer";
+    th.appendChild(handle);
+    th.addEventListener("dblclick", () => autoFitColumn(table, index + 1));
+    handle.addEventListener("dblclick", (e) => {
+      e.stopPropagation();
+      autoFitColumn(table, index + 1);
+    });
     headerRow.appendChild(th);
   });
-  table.appendChild(headerRow);
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
 
+  // tbody
+  const tbody = document.createElement("tbody");
   data.forEach((row) => {
     const tr = document.createElement("tr");
     const check = document.createElement("td");
@@ -80,14 +109,16 @@ function renderTable(data, table) {
       td.textContent = val;
       tr.appendChild(td);
     });
-    table.appendChild(tr);
+    tbody.appendChild(tr);
   });
+  table.appendChild(tbody);
+
+  enableColumnResizing(table);
 }
 
 function addRow(table) {
-  const headers = Array.from(table.rows[0].cells)
-    .slice(1)
-    .map((th) => th.textContent);
+  const headerCells = Array.from((table.tHead || table).rows[0].cells);
+  const headers = headerCells.slice(1).map((th) => th.textContent);
   const tr = document.createElement("tr");
   const check = document.createElement("td");
   check.innerHTML = `<input type="checkbox">`;
@@ -99,7 +130,7 @@ function addRow(table) {
     td.textContent = "";
     tr.appendChild(td);
   });
-  table.appendChild(tr);
+  (table.tBodies[0] || table).appendChild(tr);
 }
 
 function delRow(table) {
@@ -117,18 +148,41 @@ function addColumn(table) {
   const colName = prompt("새 열 이름을 입력하세요:");
   if (!colName) return;
 
+  // colgroup sync
+  const colgroup = table.querySelector("colgroup");
+  if (colgroup) {
+    const c = document.createElement("col");
+    c.style.width = "auto";
+    colgroup.appendChild(c);
+  }
+
+  // header with resizer
+  const headerRow = table.tHead?.rows[0] || table.rows[0];
+  const index = headerRow.cells.length; // new index at end
   const th = document.createElement("th");
   th.textContent = colName;
-  table.rows[0].appendChild(th);
+  const handle = document.createElement("div");
+  handle.className = "col-resizer";
+  th.appendChild(handle);
+  th.addEventListener("dblclick", () => autoFitColumn(table, index));
+  handle.addEventListener("dblclick", (e) => {
+    e.stopPropagation();
+    autoFitColumn(table, index);
+  });
+  headerRow.appendChild(th);
 
-  Array.from(table.rows)
-    .slice(1)
-    .forEach((row) => {
-      const td = document.createElement("td");
-      td.contentEditable = "true";
-      td.textContent = "";
-      row.appendChild(td);
-    });
+  // body cells
+  const bodyRows = table.tBodies[0]
+    ? Array.from(table.tBodies[0].rows)
+    : Array.from(table.rows).slice(1);
+  bodyRows.forEach((row) => {
+    const td = document.createElement("td");
+    td.contentEditable = "true";
+    td.textContent = "";
+    row.appendChild(td);
+  });
+
+  enableColumnResizing(table);
 }
 
 function delColumn(table) {
@@ -136,9 +190,110 @@ function delColumn(table) {
   const idx = parseInt(colIndex);
   if (isNaN(idx) || idx < 1) return;
 
-  Array.from(table.rows).forEach((row) => {
+  // colgroup sync
+  const colgroup = table.querySelector("colgroup");
+  if (colgroup && colgroup.children[idx]) {
+    colgroup.removeChild(colgroup.children[idx]);
+  }
+
+  // header cell
+  if (table.tHead && table.tHead.rows[0].cells[idx]) {
+    table.tHead.rows[0].deleteCell(idx);
+  }
+  // body cells
+  const rows = table.tBodies[0]
+    ? Array.from(table.tBodies[0].rows)
+    : Array.from(table.rows).slice(1);
+  rows.forEach((row) => {
     if (row.cells[idx]) row.deleteCell(idx);
   });
+}
+
+function enableColumnResizing(table) {
+  const colgroup = table.querySelector("colgroup");
+  if (!colgroup) return;
+  const headerRow = table.tHead?.rows[0] || table.rows[0];
+  const handles = headerRow.querySelectorAll(".col-resizer");
+
+  handles.forEach((handle) => {
+    const th = handle.parentElement;
+    const colIndex = Array.from(headerRow.children).indexOf(th);
+    const colEl = colgroup.children[colIndex];
+    if (!colEl) return;
+
+    let startX = 0;
+    let startWidth = 0;
+
+    function onMouseDown(e) {
+      startX = e.clientX;
+      startWidth = th.getBoundingClientRect().width;
+      document.body.classList.add("resizing");
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+      e.preventDefault();
+    }
+
+    function onMouseMove(e) {
+      const dx = e.clientX - startX;
+      const newWidth = Math.max(40, startWidth + dx);
+      colEl.style.width = newWidth + "px";
+    }
+
+    function onMouseUp() {
+      document.body.classList.remove("resizing");
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    }
+
+    handle.onmousedown = null;
+    handle.addEventListener("mousedown", onMouseDown);
+  });
+}
+
+function autoFitColumn(table, colIndex) {
+  // colIndex includes the checkbox column at 0; ignore 0
+  if (colIndex === 0) return;
+  const colgroup = table.querySelector("colgroup");
+  const headerRow = table.tHead?.rows[0] || table.rows[0];
+  const headerCell = headerRow.cells[colIndex];
+  if (!colgroup || !headerCell) return;
+  const colEl = colgroup.children[colIndex];
+  if (!colEl) return;
+
+  const rows = table.tBodies[0]
+    ? Array.from(table.tBodies[0].rows)
+    : Array.from(table.rows).slice(1);
+  const sampleCell = rows[0]?.cells[colIndex] || headerCell;
+  const style = window.getComputedStyle(sampleCell);
+
+  const measurer = document.createElement("span");
+  measurer.style.position = "absolute";
+  measurer.style.visibility = "hidden";
+  measurer.style.whiteSpace = "pre";
+  measurer.style.fontFamily = style.fontFamily;
+  measurer.style.fontSize = style.fontSize;
+  measurer.style.fontWeight = style.fontWeight;
+  measurer.style.letterSpacing = style.letterSpacing;
+  document.body.appendChild(measurer);
+
+  let max = 0;
+  const cells = [
+    headerCell,
+    ...rows.map((r) => r.cells[colIndex]).filter(Boolean),
+  ];
+  cells.forEach((cell) => {
+    const text = cell.textContent || "";
+    measurer.textContent = text;
+    max = Math.max(max, measurer.getBoundingClientRect().width);
+  });
+
+  const padding =
+    parseFloat(style.paddingLeft) + parseFloat(style.paddingRight) || 0;
+  const extra = 24; // handle + breathing room
+  const target = Math.max(40, Math.min(800, Math.ceil(max + padding + extra)));
+  colEl.style.width = target + "px";
+
+  document.body.removeChild(measurer);
 }
 
 function filterTable(table, keyword) {
