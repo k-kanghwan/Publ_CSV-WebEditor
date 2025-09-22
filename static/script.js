@@ -1,22 +1,30 @@
 let currentTabs = {};
+let allFiles = [];
+let selectedFiles = new Set();
 
 async function fetchFiles() {
   const res = await fetch("/files");
-  const files = await res.json();
+  allFiles = await res.json();
+  renderFileOptions(allFiles);
+}
+
+function renderFileOptions(files) {
   const select = document.getElementById("fileSelect");
   select.innerHTML = "";
   files.forEach((f) => {
     const option = document.createElement("option");
     option.value = f;
     option.textContent = f;
+    option.selected = selectedFiles.has(f);
     select.appendChild(option);
   });
 }
 
 async function loadFiles() {
-  const selected = Array.from(
-    document.getElementById("fileSelect").selectedOptions
-  ).map((o) => o.value);
+  const selectEl = document.getElementById("fileSelect");
+  const selected = selectedFiles.size
+    ? Array.from(selectedFiles)
+    : Array.from(selectEl.selectedOptions).map((o) => o.value);
   const tabs = document.getElementById("tabs");
   tabs.innerHTML = "";
   currentTabs = {};
@@ -354,5 +362,29 @@ document.getElementById("loadBtn").addEventListener("click", loadFiles);
 document
   .getElementById("setDirBtn")
   .addEventListener("click", setDataDirectory);
+
+// file search + selection persistence
+document.getElementById("fileSearch").addEventListener("input", (e) => {
+  const q = (e.target.value || "").trim().toLowerCase();
+  const filtered = q
+    ? allFiles.filter((f) => f.toLowerCase().includes(q))
+    : allFiles;
+  renderFileOptions(filtered);
+});
+
+document.getElementById("fileSelect").addEventListener("change", (e) => {
+  const select = e.target;
+  const visibleValues = Array.from(select.options).map((o) => o.value);
+  const visibleSelected = new Set(
+    Array.from(select.selectedOptions).map((o) => o.value)
+  );
+  visibleValues.forEach((v) => {
+    if (visibleSelected.has(v)) {
+      selectedFiles.add(v);
+    } else {
+      selectedFiles.delete(v);
+    }
+  });
+});
 
 fetchFiles();
