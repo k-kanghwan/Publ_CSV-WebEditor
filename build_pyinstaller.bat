@@ -1,0 +1,1 @@
+pyinstaller --onefile --add-data "static;static" --name CsvEditor --exclude-module PyQt5 --exclude-module PyQt5.sip --exclude-module PyQt6 --exclude-module PySide2 --exclude-module PySide6 --icon=ico/favicon.ico CsvEditor.py
