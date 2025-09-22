@@ -1,8 +1,8 @@
-DEBUG_MODE = True
-
-
 import os
 import sys
+
+DEBUG_MODE = not getattr(sys, "frozen", False)
+
 
 import pandas as pd
 from pandas.errors import EmptyDataError
@@ -86,7 +86,13 @@ async def save_file(filename: str, request: Request):
 
 
 if __name__ == "__main__":
+    print(f"Debug mode: {DEBUG_MODE}")
     default_port = 55131
     port = int(os.environ.get("PORT", default_port))
     webbrowser.open(f"http://localhost:{port}")
-    uvicorn.run("CsvEditor:app", host="127.0.0.1", port=port, reload=DEBUG_MODE)
+    if DEBUG_MODE:
+        # Reload requires an import string; use module:app in dev
+        uvicorn.run("CsvEditor:app", host="127.0.0.1", port=port, reload=True)
+    else:
+        # In frozen executable, import-by-string can fail; pass the app object
+        uvicorn.run(app, host="127.0.0.1", port=port, reload=False)
