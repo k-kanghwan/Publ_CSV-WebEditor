@@ -56,48 +56,6 @@ async def set_data_dir(request: Request):
     return JSONResponse({"data_dir": DATA_DIR})
 
 
-def _choose_dir_dialog():
-    import tkinter as tk
-    from tkinter import filedialog
-
-    root = tk.Tk()
-    root.withdraw()
-    root.attributes("-topmost", True)
-    selected = filedialog.askdirectory(title="Select data folder")
-    root.destroy()
-    return selected or ""
-
-
-@app.post("/choose_data_dir")
-async def choose_data_dir():
-    selected = await run_in_threadpool(_choose_dir_dialog)
-    if not selected:
-        return JSONResponse({"error": "No folder selected"}, status_code=400)
-    if not os.path.isdir(selected):
-        return JSONResponse({"error": "Invalid folder"}, status_code=400)
-    global DATA_DIR
-    DATA_DIR = selected
-    return JSONResponse({"data_dir": DATA_DIR})
-
-
-@app.get("/load/{filename}")
-async def load_file(filename: str):
-    path = os.path.join(DATA_DIR, filename)
-    if not os.path.exists(path):
-        return JSONResponse({"error": "File not found"}, status_code=404)
-    df = pd.read_csv(path)
-    return JSONResponse(df.to_dict(orient="records"))
-
-
-@app.post("/save/{filename}")
-async def save_file(filename: str, request: Request):
-    path = os.path.join(DATA_DIR, filename)
-    data = await request.json()
-    df = pd.DataFrame(data)
-    df.to_csv(path, index=False, encoding="utf-8-sig")
-    return JSONResponse({"status": "success"})
-
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "8000"))
     uvicorn.run("main:app", host="127.0.0.1", port=port, reload=DEBUG_MODE)
