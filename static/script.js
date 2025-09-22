@@ -22,7 +22,7 @@ async function loadFiles() {
   currentTabs = {};
 
   for (const filename of selected) {
-    const res = await fetch(`/load/${filename}`);
+    const res = await fetch(`/load/${encodeURIComponent(filename)}`);
     const data = await res.json();
 
     const tab = document.createElement("div");
@@ -52,6 +52,25 @@ async function loadFiles() {
       filterTable(table, e.target.value);
 
     currentTabs[filename] = table;
+  }
+}
+
+async function setDataDirectory() {
+  const newDir = prompt("새 데이터 디렉토리를 입력하세요:");
+  if (!newDir) return;
+
+  const res = await fetch(`/set_data_dir/${encodeURIComponent(newDir)}`, {
+    method: "POST",
+  });
+  const data = await res.json();
+  if (data.status === "success") {
+    alert(`데이터 디렉토리가 변경되었습니다: ${data.data_dir}`);
+  } else {
+    alert(`오류: ${data.error}`);
+  }
+  // 페이지 새로고침
+  if (data.status === "success") {
+    window.location.href = "/";
   }
 }
 
@@ -297,13 +316,15 @@ function autoFitColumn(table, colIndex) {
 }
 
 function filterTable(table, keyword) {
+  const lowerKeyword = (keyword || "").toLowerCase();
   Array.from(table.rows)
     .slice(1)
     .forEach((row) => {
       const text = Array.from(row.cells)
         .map((td) => td.textContent)
-        .join(" ");
-      row.style.display = text.includes(keyword) ? "" : "none";
+        .join(" ")
+        .toLowerCase();
+      row.style.display = text.includes(lowerKeyword) ? "" : "none";
     });
 }
 
@@ -330,4 +351,8 @@ async function saveFile(filename, table) {
 }
 
 document.getElementById("loadBtn").addEventListener("click", loadFiles);
+document
+  .getElementById("setDirBtn")
+  .addEventListener("click", setDataDirectory);
+
 fetchFiles();

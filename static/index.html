@@ -9,8 +9,19 @@
   <body>
     <h2>CSV File Editor</h2>
     <div>
+      <input
+        type="text"
+        id="fileSearch"
+        class="fileSearch"
+        placeholder="Search files..."
+      />
+    </div>
+    <div>
       <select id="fileSelect" multiple></select>
-      <button id="loadBtn">Load</button>
+      <div>
+        <button id="loadBtn">Load</button>
+        <button id="setDirBtn">Set Data Directory</button>
+      </div>
     </div>
 
     <div id="tabs"></div>

@@ -41,16 +41,13 @@ button {
   margin: 5px;
   padding: 5px;
 }
-/*       <select id="fileSelect" multiple></select>
-      <button id="loadBtn">Load</button> */
 
 select#fileSelect {
   width: 100%;
   height: 100px;
 }
 
-button#loadBtn {
-  width: 100%;
+button {
   padding: 5px 15px;
 }
 
