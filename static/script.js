@@ -1,6 +1,7 @@
 let currentTabs = {};
 let allFiles = [];
 let selectedFiles = new Set();
+let currentGlobalQuery = "";
 
 async function fetchFiles() {
   const res = await fetch("/files");
@@ -49,6 +50,11 @@ async function loadFiles() {
 
     const table = tab.querySelector(".csvTable");
     renderTable(data, table);
+
+    // Apply global filter if active
+    if (currentGlobalQuery) {
+      filterTable(table, currentGlobalQuery);
+    }
 
     // 이벤트 연결
     tab.querySelector(".addRowBtn").onclick = () => addRow(table);
@@ -336,6 +342,13 @@ function filterTable(table, keyword) {
     });
 }
 
+function filterAllTables(keyword) {
+  currentGlobalQuery = keyword || "";
+  Object.values(currentTabs).forEach((table) =>
+    filterTable(table, currentGlobalQuery)
+  );
+}
+
 async function saveFile(filename, table) {
   const headers = Array.from(table.rows[0].cells)
     .slice(1)
@@ -388,3 +401,20 @@ document.getElementById("fileSelect").addEventListener("change", (e) => {
 });
 
 fetchFiles();
+
+// global search across all loaded tabs
+const globalSearch = document.getElementById("globalSearch");
+if (globalSearch) {
+  globalSearch.addEventListener("input", (e) => {
+    filterAllTables(e.target.value);
+  });
+}
+
+const globalSearchClear = document.getElementById("globalSearchClear");
+if (globalSearchClear && globalSearch) {
+  globalSearchClear.addEventListener("click", () => {
+    globalSearch.value = "";
+    filterAllTables("");
+    globalSearch.focus();
+  });
+}
