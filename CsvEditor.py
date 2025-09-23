@@ -1,5 +1,7 @@
 VERSION = "v0.0.1"  # 2025.09.23 - initial version
 VERSION = "v0.0.11"  # 2025.09.23 - 검색된 테이블 하이라이트 추가
+VERSION = "v0.0.12"  # 2025.09.23 - fix: csv 데이터에 null 값은 ""으로 변경
+VERSION = "v0.0.13"
 
 import os
 import sys
@@ -62,7 +64,8 @@ async def load_file(filename: str):
     if not os.path.exists(path):
         return JSONResponse({"error": "File not found"}, status_code=404)
     try:
-        df = pd.read_csv(path)
+        df = pd.read_csv(path, dtype=str)
+        df = df.fillna("")
         return JSONResponse(df.to_dict(orient="records"))
     except EmptyDataError:
         # Empty file: return empty list so frontend can show a blank table
