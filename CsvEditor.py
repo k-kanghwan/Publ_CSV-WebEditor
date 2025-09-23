@@ -89,6 +89,7 @@ if __name__ == "__main__":
     print(f"Debug mode: {DEBUG_MODE}")
     default_port = 55131
     port = int(os.environ.get("PORT", default_port))
+    print(f"Starting server on http://localhost:{port}")
     webbrowser.open(f"http://localhost:{port}")
     if DEBUG_MODE:
         # Reload requires an import string; use module:app in dev
