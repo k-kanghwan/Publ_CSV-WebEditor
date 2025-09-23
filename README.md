@@ -1,5 +1,7 @@
 # CSV Web Editor
 
+> **Note**: This project is currently in the testing phase. Please use it with caution and report any issues you encounter.
+
 A web-based CSV file editor built with FastAPI and vanilla JavaScript. This application provides an intuitive interface for viewing, editing, and saving CSV files through a web browser.
 
 ## Features
