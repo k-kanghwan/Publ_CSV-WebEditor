@@ -1,3 +1,5 @@
+VERSION = "v0.0.1"  # 2025.09.23 - initial version
+
 import os
 import sys
 
