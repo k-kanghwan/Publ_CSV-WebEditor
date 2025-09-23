@@ -1,3 +1,7 @@
+# Ignore zip files
+*.zip
+
+
 # Created by https://www.toptal.com/developers/gitignore/api/python,java,macos,windows
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,java,macos,windows
 
@@ -93,7 +97,6 @@ MANIFEST
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
-*.spec
 
 # Installer logs
 pip-log.txt
