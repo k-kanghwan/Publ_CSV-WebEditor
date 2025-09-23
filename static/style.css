@@ -2,6 +2,14 @@ body {
   font-family: Arial, sans-serif;
   margin: 20px;
 }
+/* Keep the global search bar visible on scroll */
+#globalSearchBar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #fff;
+  padding: 8px 0;
+}
 
 .tab {
   border: 1px solid #ccc;
