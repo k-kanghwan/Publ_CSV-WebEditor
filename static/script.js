@@ -377,10 +377,32 @@ document
   .addEventListener("click", setDataDirectory);
 
 // file search + selection persistence
+// Advanced file search: supports AND (space) and OR (|)
+function matchesFileQuery(filename, queryRaw) {
+  const name = (filename || "").toLowerCase();
+  const q = (queryRaw || "").toLowerCase();
+  // Split by OR first. Each group is AND-ed by spaces
+  const orGroups = q
+    .split("|")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (orGroups.length === 0) return true;
+
+  return orGroups.some((group) => {
+    const andTerms = group
+      .split(/\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    // Group matches only if every term is found
+    return andTerms.every((term) => name.includes(term));
+  });
+}
+
 document.getElementById("fileSearch").addEventListener("input", (e) => {
-  const q = (e.target.value || "").trim().toLowerCase();
-  const filtered = q
-    ? allFiles.filter((f) => f.toLowerCase().includes(q))
+  const q = e.target.value || "";
+  const filtered = q.trim()
+    ? allFiles.filter((f) => matchesFileQuery(f, q))
     : allFiles;
   renderFileOptions(filtered);
 });
