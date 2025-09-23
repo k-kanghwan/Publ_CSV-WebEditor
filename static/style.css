@@ -17,6 +17,11 @@ body {
   padding: 10px;
 }
 
+/* Highlight tabs that contain matches for the current search */
+.tab.tab-highlight {
+  background-color: #fff7c2; /* soft yellow */
+}
+
 table {
   border-collapse: collapse;
   width: 100%;

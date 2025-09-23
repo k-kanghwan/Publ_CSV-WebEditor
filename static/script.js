@@ -330,16 +330,32 @@ function autoFitColumn(table, colIndex) {
 }
 
 function filterTable(table, keyword) {
-  const lowerKeyword = (keyword || "").toLowerCase();
-  Array.from(table.rows)
-    .slice(1)
-    .forEach((row) => {
-      const text = Array.from(row.cells)
-        .map((td) => td.textContent)
-        .join(" ")
-        .toLowerCase();
-      row.style.display = text.includes(lowerKeyword) ? "" : "none";
-    });
+  const q = (keyword || "").trim().toLowerCase();
+  let matchCount = 0;
+
+  const rows = Array.from(table.rows).slice(1);
+  rows.forEach((row) => {
+    if (!q) {
+      row.style.display = "";
+      return;
+    }
+    const text = Array.from(row.cells)
+      .map((td) => td.textContent)
+      .join(" ")
+      .toLowerCase();
+    const isMatch = text.includes(q);
+    if (isMatch) matchCount++;
+    row.style.display = isMatch ? "" : "none";
+  });
+
+  const tabEl = table.closest(".tab");
+  if (tabEl) {
+    if (q && matchCount > 0) {
+      tabEl.classList.add("tab-highlight");
+    } else {
+      tabEl.classList.remove("tab-highlight");
+    }
+  }
 }
 
 function filterAllTables(keyword) {

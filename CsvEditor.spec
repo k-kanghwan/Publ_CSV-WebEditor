@@ -18,13 +18,18 @@ import shutil
 with open("CsvEditor.py", "r", encoding="utf-8") as f:
     cont = f.read()
 # Accept VERSION strings like "0.0.1" or "v0.0.1" with either quote style
-match = re.search(r"VERSION\s*=\s*['\"]v?(\d+\.\d+\.\d+)['\"]", cont)
-ver_info = match.group(1) if match else None
+# If multiple VERSION lines exist, use the last one found (treat as latest)
+matches = re.findall(r"VERSION\s*=\s*['\"]v?(\d+\.\d+\.\d+)['\"]", cont)
+ver_info = matches[-1] if matches else None
 
 if not ver_info:
     raise ValueError(
         "======================Could not find version info=====================\n ==> Check CsvEditor.py"
     )
+
+print("===================== Building Application =====================")
+print(f"Building {APP_NAME} {ver_info}")
+print("===============================================================")
 
 
 block_cipher = None

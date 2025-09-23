@@ -1,4 +1,5 @@
 VERSION = "v0.0.1"  # 2025.09.23 - initial version
+VERSION = "v0.0.11"  # 2025.09.23 - 검색된 테이블 하이라이트 추가
 
 import os
 import sys
