@@ -55,8 +55,12 @@ async function loadFiles() {
 
       const tab = document.createElement("div");
       tab.className = "tab";
+      tab.dataset.filename = filename;
       tab.innerHTML = `
-        <h3>${filename}</h3>
+        <div class="tab-header">
+          <h3 class="filename" title="더블클릭하여 이름 변경">${filename}</h3>
+          <span class="rename-hint" style="font-size:11px;color:#888;">(더블클릭 수정 / Enter 저장 / Esc 취소)</span>
+        </div>
         <input type="text" placeholder="검색..." class="searchBox">
         <button class="addRowBtn">행 추가</button>
         <button class="delRowBtn">선택 행 삭제</button>
@@ -78,11 +82,20 @@ async function loadFiles() {
       tab.querySelector(".delRowBtn").onclick = () => delRow(table);
       tab.querySelector(".addColBtn").onclick = () => addColumn(table);
       tab.querySelector(".delColBtn").onclick = () => delColumn(table);
-      tab.querySelector(".saveBtn").onclick = () => saveFile(filename, table);
+      tab.querySelector(".saveBtn").onclick = () => {
+        const currentName = tab.dataset.filename || filename;
+        saveFile(currentName, table);
+      };
       tab.querySelector(".searchBox").oninput = (e) =>
         filterTable(table, e.target.value);
 
       currentTabs[filename] = table;
+
+      // Inline rename logic
+      const nameEl = tab.querySelector(".filename");
+      if (nameEl) {
+        nameEl.addEventListener("dblclick", () => beginRename(nameEl, tab));
+      }
     } catch (err) {
       console.error("Failed to load", filename, err);
     }
@@ -390,6 +403,118 @@ function filterAllTables(keyword) {
   Object.values(currentTabs).forEach((table) =>
     filterTable(table, currentGlobalQuery)
   );
+}
+
+// ===== Filename Inline Rename =====
+function lockUIForRename(activeTab) {
+  document.body.classList.add("rename-lock");
+  document
+    .querySelectorAll(".tab")
+    .forEach((t) => t.classList.remove("renaming-active"));
+  if (activeTab) activeTab.classList.add("renaming-active");
+}
+
+function unlockUIForRename() {
+  document.body.classList.remove("rename-lock");
+  document
+    .querySelectorAll(".tab.renaming-active")
+    .forEach((t) => t.classList.remove("renaming-active"));
+}
+
+function beginRename(nameEl, tabEl) {
+  if (nameEl.dataset.editing === "1") return;
+  nameEl.dataset.editing = "1";
+  const original = tabEl.dataset.filename || nameEl.textContent.trim();
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = original;
+  input.style.fontSize = "1em";
+  input.style.fontWeight = "bold";
+  input.style.width = Math.max(120, original.length * 8) + "px";
+  nameEl.replaceWith(input);
+  lockUIForRename(tabEl);
+  input.focus();
+  input.select();
+
+  let finished = false; // guard to avoid double commit (Enter + blur)
+
+  function cleanup() {
+    input.removeEventListener("keydown", onKeyDown);
+    input.removeEventListener("blur", onBlurCommit);
+  }
+
+  function restore() {
+    input.replaceWith(nameEl);
+    nameEl.dataset.editing = "0";
+    unlockUIForRename();
+  }
+
+  function cancel() {
+    if (finished) return;
+    finished = true;
+    cleanup();
+    restore();
+  }
+
+  async function commit() {
+    if (finished) return;
+    let newName = input.value.trim();
+    if (!newName) {
+      cancel();
+      return;
+    }
+    if (!newName.toLowerCase().endsWith(".csv")) newName += ".csv";
+    if (newName === original) {
+      cancel();
+      return;
+    }
+    try {
+      const res = await fetch("/rename", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ old: original, new: newName }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "이름 변경 실패");
+        cancel();
+        return;
+      }
+      finished = true;
+      // Update mappings
+      delete currentTabs[original];
+      currentTabs[newName] = tabEl.querySelector(".csvTable");
+      if (selectedFiles.has(original)) {
+        selectedFiles.delete(original);
+        selectedFiles.add(newName);
+      }
+      tabEl.dataset.filename = newName;
+      nameEl.textContent = newName;
+      restore();
+      cleanup();
+      fetchFiles();
+    } catch (e) {
+      console.error(e);
+      alert("이름 변경 오류");
+      cancel();
+    }
+  }
+
+  function onKeyDown(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      commit();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      cancel();
+    }
+  }
+  function onBlurCommit() {
+    commit();
+  }
+
+  input.addEventListener("keydown", onKeyDown);
+  input.addEventListener("blur", onBlurCommit);
 }
 
 async function saveFile(filename, table) {

@@ -1,4 +1,5 @@
 VERSION = "v0.0.13"  # 2025.09.24 파일 순차적으로 읽게 수정
+VERSION = "v0.0.14"  # 2025.09.24 검색 후 파일명 변경 기능 추가
 
 import os
 import sys
@@ -86,6 +87,37 @@ async def save_file(filename: str, request: Request):
     df = pd.DataFrame(data)
     df.to_csv(path, index=False, encoding="utf-8-sig")
     return JSONResponse({"status": "success"})
+
+
+@app.post("/rename")
+async def rename_file(request: Request):
+    if not DATA_DIR or not os.path.isdir(DATA_DIR):
+        return JSONResponse({"error": "Data directory invalid"}, status_code=400)
+    body = await request.json()
+    old = body.get("old") or ""
+    new = body.get("new") or ""
+    # Basic validation
+    if not old or not new:
+        return JSONResponse({"error": "Missing old or new filename"}, status_code=400)
+    if os.path.sep in new or os.path.sep in old:
+        return JSONResponse({"error": "Path separators not allowed"}, status_code=400)
+    if not new.lower().endswith(".csv"):
+        return JSONResponse(
+            {"error": "New filename must end with .csv"}, status_code=400
+        )
+    old_path = os.path.join(DATA_DIR, old)
+    new_path = os.path.join(DATA_DIR, new)
+    if not os.path.exists(old_path):
+        return JSONResponse({"error": "Original file not found"}, status_code=404)
+    if os.path.exists(new_path):
+        return JSONResponse(
+            {"error": "Target filename already exists"}, status_code=409
+        )
+    try:
+        os.rename(old_path, new_path)
+        return JSONResponse({"status": "success", "old": old, "new": new})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 if __name__ == "__main__":

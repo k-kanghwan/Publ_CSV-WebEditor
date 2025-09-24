@@ -87,3 +87,24 @@ body.resizing {
   cursor: col-resize;
   user-select: none;
 }
+
+/* Rename lock: dim and disable other tabs and controls */
+body.rename-lock .tab {
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+body.rename-lock .tab.renaming-active {
+  opacity: 1;
+  pointer-events: auto;
+  box-shadow: 0 0 0 2px #2d7ff9 inset;
+  background-color: #fffef2;
+}
+body.rename-lock #globalSearch,
+body.rename-lock #fileSearch,
+body.rename-lock #loadBtn,
+body.rename-lock #setDirBtn,
+body.rename-lock select#fileSelect {
+  opacity: 0.5;
+  pointer-events: none;
+}
