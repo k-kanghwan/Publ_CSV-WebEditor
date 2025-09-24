@@ -23,50 +23,77 @@ function renderFileOptions(files) {
 
 async function loadFiles() {
   const selectEl = document.getElementById("fileSelect");
-  const selected = selectedFiles.size
+  const selectedRaw = selectedFiles.size
     ? Array.from(selectedFiles)
     : Array.from(selectEl.selectedOptions).map((o) => o.value);
+
+  // Ensure deterministic sequential order
+  const selected = selectedRaw.slice().sort((a, b) => a.localeCompare(b));
+
   const tabs = document.getElementById("tabs");
   tabs.innerHTML = "";
   currentTabs = {};
 
-  for (const filename of selected) {
-    const res = await fetch(`/load/${encodeURIComponent(filename)}`);
-    const data = await res.json();
-
-    const tab = document.createElement("div");
-    tab.className = "tab";
-    tab.innerHTML = `
-      <h3>${filename}</h3>
-      <input type="text" placeholder="검색..." class="searchBox">
-      <button class="addRowBtn">행 추가</button>
-      <button class="delRowBtn">선택 행 삭제</button>
-      <button class="addColBtn">열 추가</button>
-      <button class="delColBtn">열 삭제</button>
-      <button class="saveBtn">저장</button>
-      <table class="csvTable"></table>
-    `;
-    tabs.appendChild(tab);
-
-    const table = tab.querySelector(".csvTable");
-    renderTable(data, table);
-
-    // Apply global filter if active
-    if (currentGlobalQuery) {
-      filterTable(table, currentGlobalQuery);
-    }
-
-    // 이벤트 연결
-    tab.querySelector(".addRowBtn").onclick = () => addRow(table);
-    tab.querySelector(".delRowBtn").onclick = () => delRow(table);
-    tab.querySelector(".addColBtn").onclick = () => addColumn(table);
-    tab.querySelector(".delColBtn").onclick = () => delColumn(table);
-    tab.querySelector(".saveBtn").onclick = () => saveFile(filename, table);
-    tab.querySelector(".searchBox").oninput = (e) =>
-      filterTable(table, e.target.value);
-
-    currentTabs[filename] = table;
+  // Simple progress info (ephemeral)
+  let progressEl = document.getElementById("loadProgress");
+  if (!progressEl) {
+    progressEl = document.createElement("div");
+    progressEl.id = "loadProgress";
+    progressEl.style.marginTop = "10px";
+    progressEl.style.fontSize = "12px";
+    document.body.insertBefore(progressEl, tabs);
   }
+
+  for (let i = 0; i < selected.length; i++) {
+    const filename = selected[i];
+    progressEl.textContent = `Loading (${i + 1}/${
+      selected.length
+    }) : ${filename}`;
+    try {
+      const res = await fetch(`/load/${encodeURIComponent(filename)}`);
+      const data = await res.json();
+
+      const tab = document.createElement("div");
+      tab.className = "tab";
+      tab.innerHTML = `
+        <h3>${filename}</h3>
+        <input type="text" placeholder="검색..." class="searchBox">
+        <button class="addRowBtn">행 추가</button>
+        <button class="delRowBtn">선택 행 삭제</button>
+        <button class="addColBtn">열 추가</button>
+        <button class="delColBtn">열 삭제</button>
+        <button class="saveBtn">저장</button>
+        <table class="csvTable"></table>
+      `;
+      tabs.appendChild(tab);
+
+      const table = tab.querySelector(".csvTable");
+      renderTable(data, table);
+
+      if (currentGlobalQuery) {
+        filterTable(table, currentGlobalQuery);
+      }
+
+      tab.querySelector(".addRowBtn").onclick = () => addRow(table);
+      tab.querySelector(".delRowBtn").onclick = () => delRow(table);
+      tab.querySelector(".addColBtn").onclick = () => addColumn(table);
+      tab.querySelector(".delColBtn").onclick = () => delColumn(table);
+      tab.querySelector(".saveBtn").onclick = () => saveFile(filename, table);
+      tab.querySelector(".searchBox").oninput = (e) =>
+        filterTable(table, e.target.value);
+
+      currentTabs[filename] = table;
+    } catch (err) {
+      console.error("Failed to load", filename, err);
+    }
+  }
+
+  progressEl.textContent = `Loaded ${selected.length} file(s).`;
+  setTimeout(() => {
+    if (progressEl && progressEl.parentElement) {
+      progressEl.parentElement.removeChild(progressEl);
+    }
+  }, 2000);
 }
 
 async function setDataDirectory() {

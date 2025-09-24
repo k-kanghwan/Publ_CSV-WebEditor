@@ -1,7 +1,4 @@
-VERSION = "v0.0.1"  # 2025.09.23 - initial version
-VERSION = "v0.0.11"  # 2025.09.23 - 검색된 테이블 하이라이트 추가
-VERSION = "v0.0.12"  # 2025.09.23 - fix: csv 데이터에 null 값은 ""으로 변경
-VERSION = "v0.0.13"
+VERSION = "v0.0.13"  # 2025.09.24 파일 순차적으로 읽게 수정
 
 import os
 import sys

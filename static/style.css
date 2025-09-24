@@ -19,7 +19,7 @@ body {
 
 /* Highlight tabs that contain matches for the current search */
 .tab.tab-highlight {
-  background-color: #6fccb0; /* soft yellow */
+  background-color: #b4eedd; /* soft yellow */
 }
 
 table {
