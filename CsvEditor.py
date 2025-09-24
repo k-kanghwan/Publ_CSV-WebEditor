@@ -70,9 +70,11 @@ async def load_file(filename: str):
         return JSONResponse([])
 
 
-@app.post("/set_data_dir/{new_dir}")
-async def set_data_dir(new_dir: str):
+@app.post("/set_data_dir")
+async def set_data_dir(request: Request):
     global DATA_DIR
+    body = await request.json()
+    new_dir = body.get("directory", "")
     if new_dir and os.path.isdir(new_dir):
         DATA_DIR = new_dir
         return JSONResponse({"status": "success", "data_dir": DATA_DIR})

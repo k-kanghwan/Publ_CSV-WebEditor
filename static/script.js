@@ -113,8 +113,12 @@ async function setDataDirectory() {
   const newDir = prompt("새 데이터 디렉토리를 입력하세요:");
   if (!newDir) return;
 
-  const res = await fetch(`/set_data_dir/${encodeURIComponent(newDir)}`, {
+  const res = await fetch("/set_data_dir", {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ directory: newDir }),
   });
   const data = await res.json();
   if (data.status === "success") {
