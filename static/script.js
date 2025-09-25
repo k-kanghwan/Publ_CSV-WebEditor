@@ -75,7 +75,9 @@ async function loadFiles() {
       renderTable(data, table);
 
       if (currentGlobalQuery) {
-        filterTable(table, currentGlobalQuery);
+        const mc = filterTable(table, currentGlobalQuery);
+        // Hide tab if no matches under global search
+        tab.style.display = mc > 0 ? "" : "none";
       }
 
       tab.querySelector(".addRowBtn").onclick = () => addRow(table);
@@ -400,13 +402,22 @@ function filterTable(table, keyword) {
       tabEl.classList.remove("tab-highlight");
     }
   }
+  return matchCount;
 }
 
 function filterAllTables(keyword) {
   currentGlobalQuery = keyword || "";
-  Object.values(currentTabs).forEach((table) =>
-    filterTable(table, currentGlobalQuery)
-  );
+  const q = currentGlobalQuery.trim().toLowerCase();
+  Object.values(currentTabs).forEach((table) => {
+    const mc = filterTable(table, currentGlobalQuery);
+    const tabEl = table.closest(".tab");
+    if (!tabEl) return;
+    if (!q) {
+      tabEl.style.display = ""; // reset visibility when query cleared
+    } else {
+      tabEl.style.display = mc > 0 ? "" : "none";
+    }
+  });
 }
 
 // ===== Filename Inline Rename =====
