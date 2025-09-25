@@ -22,6 +22,13 @@ body {
   background-color: #b4eedd; /* soft yellow */
 }
 
+/* Make filename (p) look like an h3 */
+.tab-header .filename {
+  font-size: 1.17em; /* default h3 size relative to root */
+  font-weight: bold;
+  margin: 0 0 4px 0;
+}
+
 table {
   border-collapse: collapse;
   width: 100%;

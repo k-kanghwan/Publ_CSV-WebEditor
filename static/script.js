@@ -58,7 +58,7 @@ async function loadFiles() {
       tab.dataset.filename = filename;
       tab.innerHTML = `
         <div class="tab-header">
-          <h3 class="filename" title="더블클릭하여 이름 변경">${filename}</h3>
+          <span class="filename" title="더블클릭하여 이름 변경">${filename}</span>
           <span class="rename-hint" style="font-size:11px;color:#888;">(더블클릭 수정 / Enter 저장 / Esc 취소)</span>
         </div>
         <input type="text" placeholder="검색..." class="searchBox">
@@ -432,8 +432,10 @@ function beginRename(nameEl, tabEl) {
   const input = document.createElement("input");
   input.type = "text";
   input.value = original;
-  input.style.fontSize = "1em";
-  input.style.fontWeight = "bold";
+  // Match the visual size of the original filename (h3-like)
+  const cs = window.getComputedStyle(nameEl);
+  input.style.fontSize = cs.fontSize;
+  input.style.fontWeight = cs.fontWeight || "bold";
   input.style.width = Math.max(120, original.length * 8) + "px";
   nameEl.replaceWith(input);
   lockUIForRename(tabEl);
