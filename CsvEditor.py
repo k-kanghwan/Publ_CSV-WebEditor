@@ -18,6 +18,9 @@ import webbrowser
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+templates = Jinja2Templates(directory="static")
 
 app = FastAPI()
 
@@ -34,8 +37,11 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 @app.get("/")
-async def root():
-    return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+async def root(request: Request):
+    return templates.TemplateResponse(
+        "index.html", {"request": request, "version": VERSION}
+    )
+    # return FileResponse(os.path.join(STATIC_DIR, "index.html"))
 
 
 @app.get("/favicon.ico")
