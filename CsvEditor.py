@@ -11,12 +11,14 @@ DEBUG_MODE = not getattr(sys, "frozen", False)
 
 import pandas as pd
 from pandas.errors import EmptyDataError
+from io import BytesIO
+import tempfile
 
 import uvicorn
 import webbrowser
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -126,6 +128,56 @@ async def rename_file(request: Request):
     try:
         os.rename(old_path, new_path)
         return JSONResponse({"status": "success", "old": old, "new": new})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/download_excel")
+async def download_excel(request: Request):
+    print("Starting Excel download...")
+    try:
+        body = await request.json()
+        tables_data = body.get("tables", [])
+
+        if not tables_data:
+            return JSONResponse({"error": "No data to export"}, status_code=400)
+
+        # Create Excel file in memory
+        output = BytesIO()
+
+        # Combine all tables into one sheet
+        combined_data = []
+
+        for table_info in tables_data:
+            filename = table_info.get("filename", "Unknown")
+            rows = table_info.get("data", [])
+
+            for row in rows:
+                # Add filename to each row
+                row_with_filename = row.copy()
+                row_with_filename["파일명"] = filename
+                combined_data.append(row_with_filename)
+
+        if combined_data:
+            df = pd.DataFrame(combined_data)
+            # Move filename column to the end
+            if "파일명" in df.columns:
+                cols = [col for col in df.columns if col != "파일명"] + ["파일명"]
+                df = df[cols]
+
+            with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                df.to_excel(writer, sheet_name="Combined Data", index=False)
+
+        output.seek(0)
+
+        return StreamingResponse(
+            BytesIO(output.read()),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": "attachment; filename=csv_editor_export.xlsx"
+            },
+        )
+
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 

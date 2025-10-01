@@ -625,3 +625,95 @@ if (globalSearchClear && globalSearch) {
     globalSearch.focus();
   });
 }
+
+// Excel download functionality
+function downloadExcel() {
+  const tablesData = [];
+
+  Object.entries(currentTabs).forEach(([filename, table]) => {
+    // Check if table exists and has rows
+    if (!table || !table.rows || table.rows.length === 0) {
+      console.warn(`Table for ${filename} is empty or invalid`);
+      return;
+    }
+
+    const tabEl = table.closest(".tab");
+
+    // Skip hidden tabs (filtered out by global search)
+    if (tabEl && tabEl.style.display === "none") {
+      return;
+    }
+
+    // Get headers from first row, skip checkbox column
+    const headerRow = table.rows[0];
+    if (!headerRow || !headerRow.cells) {
+      console.warn(`Header row for ${filename} is missing`);
+      return;
+    }
+
+    const headers = Array.from(headerRow.cells)
+      .slice(1) // Skip checkbox column
+      .map((th) => th.textContent || "");
+
+    // Get visible data rows
+    const allRows = Array.from(table.rows).slice(1); // Skip header row
+    const visibleRows = allRows.filter((row) => row.style.display !== "none");
+
+    const data = visibleRows.map((row) => {
+      const obj = {};
+      headers.forEach((header, index) => {
+        const cell = row.cells[index + 1]; // +1 to skip checkbox column
+        obj[header] = cell ? cell.textContent || "" : "";
+      });
+      return obj;
+    });
+
+    if (data.length > 0) {
+      tablesData.push({
+        filename: filename,
+        data: data,
+      });
+    }
+  });
+
+  if (tablesData.length === 0) {
+    alert("다운로드할 데이터가 없습니다.");
+    return;
+  }
+
+  fetch("/download_excel", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      tables: tablesData,
+    }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("다운로드 실패");
+      }
+      return response.blob();
+    })
+    .then((blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "csv_editor_export.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    })
+    .catch((error) => {
+      console.error("Excel download error:", error);
+      alert("Excel 다운로드 중 오류가 발생했습니다.");
+    });
+}
+
+// Attach download functionality to button
+const downloadBtn = document.getElementById("downloadExcelBtn");
+if (downloadBtn) {
+  downloadBtn.addEventListener("click", downloadExcel);
+}
