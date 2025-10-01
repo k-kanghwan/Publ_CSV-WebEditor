@@ -29,13 +29,22 @@
     <hr />
 
     <div id="globalSearchBar">
-      <input
-        type="text"
-        id="globalSearch"
-        class="fileSearch"
-        placeholder="Search within all loaded files..."
-      />
-      <button id="globalSearchClear" title="지우기">Clear</button>
+      <div id="globalSearchContainer">
+        <div>
+          <input
+            type="text"
+            id="globalSearch"
+            class="fileSearch"
+            placeholder="Search within all loaded files..."
+          />
+          <button id="globalSearchClear" title="지우기">Clear</button>
+        </div>
+        <div>
+          <button id="downloadExcelBtn" title="xl_download">
+            📊 Download to Excel
+          </button>
+        </div>
+      </div>
       <hr />
     </div>
 

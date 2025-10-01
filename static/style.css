@@ -11,6 +11,12 @@ body {
   padding: 8px 0;
 }
 
+#globalSearchContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .tab {
   border: 1px solid #ccc;
   margin-top: 20px;
