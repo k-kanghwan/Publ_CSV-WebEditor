@@ -2,4 +2,3 @@ fastapi
 uvicorn[standard]
 pandas
 openpyxl
-jinja2

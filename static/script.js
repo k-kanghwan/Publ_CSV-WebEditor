@@ -694,13 +694,25 @@ function downloadExcel() {
       if (!response.ok) {
         throw new Error("다운로드 실패");
       }
-      return response.blob();
+
+      // Extract filename from Content-Disposition header if available
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = "csv_editor_export.xlsx"; // default fallback
+
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename=([^;]+)/);
+        if (match && match[1]) {
+          filename = match[1].replace(/"/g, ""); // remove quotes if present
+        }
+      }
+
+      return response.blob().then((blob) => ({ blob, filename }));
     })
-    .then((blob) => {
+    .then(({ blob, filename }) => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "csv_editor_export.xlsx";
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

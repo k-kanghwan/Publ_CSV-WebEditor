@@ -2,6 +2,8 @@ VERSION = "v0.0.13"  # 2025.09.24 파일 순차적으로 읽게 수정
 VERSION = "v0.0.14"  # 2025.09.24 검색 후 파일명 변경 기능 추가
 VERSION = "v0.0.15"  # 2025.09.24 검색 후 파일명 변경 기능 추가
 VERSION = "v0.0.20"  # 글로벌 검색 시, 매칭되는 항목이 없는 탭은 숨기도록 수정
+VERSION = "v0.0.21"  # 글로벌 검색 후 엑셀 다운로드 기능 추가
+VERSION = "v0.0.22"  # 2025.10.01 엑셀 다운로드 시, 파일명에 날짜/시간 추가
 
 import os
 import sys
@@ -13,6 +15,7 @@ import pandas as pd
 from pandas.errors import EmptyDataError
 from io import BytesIO
 import tempfile
+from datetime import datetime
 
 import uvicorn
 import webbrowser
@@ -20,9 +23,6 @@ import webbrowser
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-
-templates = Jinja2Templates(directory="static")
 
 app = FastAPI()
 
@@ -35,20 +35,35 @@ else:
 DATA_DIR = r""
 STATIC_DIR = os.path.join(base_path, "static")
 
+# Templates not needed - using direct file serving
+
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 @app.get("/")
 async def root(request: Request):
-    return templates.TemplateResponse(
-        "index.html", {"request": request, "version": VERSION}
-    )
-    # return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+    # Use FileResponse for better compatibility with PyInstaller
+    template_path = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(template_path):
+        # Read the file and replace the version placeholder
+        with open(template_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        content = content.replace("{{ version }}", VERSION)
+        from starlette.responses import HTMLResponse
+
+        return HTMLResponse(content)
+    else:
+        return JSONResponse({"error": "Template not found"}, status_code=404)
 
 
 @app.get("/favicon.ico")
 async def favicon():
-    return FileResponse(os.path.join(STATIC_DIR, "favicon.svg"))
+    favicon_path = os.path.join(STATIC_DIR, "favicon.svg")
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path)
+    else:
+        # Return 404 if favicon doesn't exist
+        return JSONResponse({"error": "Favicon not found"}, status_code=404)
 
 
 @app.get("/files")
@@ -170,12 +185,15 @@ async def download_excel(request: Request):
 
         output.seek(0)
 
+        # Generate filename with current date and time
+        current_time = datetime.now()
+        timestamp = current_time.strftime("%y%m%d_%H%M%S")
+        filename = f"csv_editor_export-{timestamp}.xlsx"
+
         return StreamingResponse(
             BytesIO(output.read()),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={
-                "Content-Disposition": "attachment; filename=csv_editor_export.xlsx"
-            },
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
 
     except Exception as e:
